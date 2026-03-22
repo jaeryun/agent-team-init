@@ -169,31 +169,44 @@ AskUserQuestion으로 생성할 워크플로우를 보여주고 확인받는다:
 각 에이전트 프롬프트에 반드시 해당 단계의 스킬 호출 지시를 포함할 것.
 에이전트 간 공유 파일 동시 수정 금지.
 
-### 🔵 스펙 확정 전 (Pre-spec) — 대화·설계 단계
+### 🔵 스펙 설계 — Architect 세션 (별도 세션)
 
-> team-lead는 사람과 대화하며 요구사항을 수집한다. 설계·브레인스토밍은 architect에게 위임.
-> 이 단계에서 구현 팀 멤버 생성 금지.
+> Agents Orchestrator 세션과 **분리된 별도 세션**에서 진행한다.
+> 사람이 Software Architect와 직접 대화해 스펙을 완성한다.
+> Agents Orchestrator는 이 단계에 관여하지 않는다.
+
+| # | 단계 | 담당 | 스킬 | 산출물 |
+| --- | --- | --- | --- | --- |
+| 1 | 요구사항 정의 및 설계 | Software Architect | `brainstorming` | 스펙·설계 문서 |
+| 2 | 계획 수립 및 태스크 분해 | Software Architect | `writing-plans` | 플랜·태스크 목록 |
+
+> Software Architect는 도메인 설계가 필요할 때 Backend/Frontend Architect 등을 팀 멤버로 생성해 협업한다.
+> 통합 스펙과 태스크 목록이 완성되면 Orchestrator 세션으로 전달한다.
+
+### 🟢 구현 파이프라인 — Orchestrator 세션
+
+> 확정된 스펙을 받은 Agents Orchestrator가 파이프라인을 시작한다.
+> 모든 구현 작업은 담당 팀 멤버에게 위임한다. 직접 구현 금지.
 
 | # | 단계 | 담당 역할 | 스킬 | 산출물 |
 | --- | --- | --- | --- | --- |
-| 1 | 요구사항 정의 및 설계 | [architect 계열] | `brainstorming` | 스펙·설계 문서 |
-| 2 | 계획 수립 및 태스크 분해 | [architect 계열] | `writing-plans` | 플랜·태스크 목록 |
-
-### 🟢 스펙 확정 후 (Post-spec) — 구현 단계
-
-> team-lead는 자율 파이프라인 관리자로 전환. 모든 구현 작업을 담당 멤버에게 위임.
-> 설계·구현·테스트 직접 수행 금지.
-
-| # | 단계 | 담당 역할 | 스킬 | 산출물 |
-| --- | --- | --- | --- | --- |
-| 3 | 태스크 배분 | team-lead | `dispatching-parallel-agents` (2개 이상 시) | 멤버별 태스크 할당 |
+| 3 | 태스크 배분 | Agents Orchestrator | `dispatching-parallel-agents` (2개 이상 시) | 멤버별 태스크 할당 |
 | 4 | 워크스페이스 격리 | 담당 멤버 | `using-git-worktrees` | 격리된 브랜치 |
 | 5 | 구현 | 담당 멤버 | `test-driven-development` | 코드 + 테스트 |
 | 6 | 디버깅 | 담당 멤버 | `systematic-debugging` | 수정된 코드 |
 | 7 | 완료 검증 | 담당 멤버 | `verification-before-completion` | 검증 결과 |
 | 8 | 코드 리뷰 | Code Reviewer (서브에이전트) | `requesting-code-review` | 리뷰 피드백 |
 | 9 | 피드백 반영 | 담당 멤버 | `receiving-code-review` | 수정된 코드 |
-| 10 | 브랜치 마무리 | team-lead | `finishing-a-development-branch` | PR / 머지 |
+| 10 | 브랜치 마무리 | Agents Orchestrator | `finishing-a-development-branch` | PR / 머지 |
+
+### 🔄 스펙 변경 흐름
+
+> 스펙은 언제든 변경될 수 있다. 구현 중 변경이 필요하면 Architect 세션으로 돌아간다.
+
+1. Agents Orchestrator가 현재 파이프라인 상태를 기록하고 중단
+2. Architect 세션에서 스펙 수정 (Software Architect와 협업)
+3. 업데이트된 스펙을 Orchestrator 세션에 전달
+4. Agents Orchestrator가 변경 영향 범위 분석 후 해당 태스크부터 재개
 
 ## 완료 기준
 

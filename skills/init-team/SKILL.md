@@ -181,21 +181,43 @@ AskUserQuestion으로 추천 결과를 보여주고 확인받는다:
 
 ---
 
-### 6단계: team-lead 페르소나 설정
+### 6단계: Agents Orchestrator 페르소나 설정 (필수)
 
-team-lead 역할을 맡을 페르소나를 설정한다.
+이 팀 구조는 **두 개의 세션**으로 운영된다:
 
-> **team-lead의 두 가지 단계**
->
-> | 단계 | 역할 | 행동 |
-> |------|------|------|
-> | **스펙 확정 전** | 사람과 대화하며 요구사항 수집 | architect에게 설계 위임, 질문·확인 중심 |
-> | **스펙 확정 후** | 자율 파이프라인 관리자 | 구현 작업 담당 멤버에게 위임, 품질 게이트 관리 |
->
-> Agents Orchestrator는 **두 단계 모두 처리**할 수 있도록 설계되어 있다.
-> 단, 스펙 확정 전에는 architect 없이 직접 설계·브레인스토밍을 수행해서는 안 된다.
+```
+┌─────────────────────────────────────────────────────────────┐
+│ [Architect 세션] — 스펙 설계                                 │
+│                                                             │
+│  사람 ↔ Software Architect (스펙 리드)                       │
+│              ↓ 도메인 설계 필요 시                           │
+│         Software Architect ↔ Backend/Frontend Architect     │
+│         (Software Architect가 팀 멤버로 생성해 협업)         │
+│              ↓                                              │
+│         통합 스펙 완성 → 파일로 저장                         │
+└─────────────────────────────────────────────────────────────┘
+                         ↓ 스펙 확정
+┌─────────────────────────────────────────────────────────────┐
+│ [Orchestrator 세션] — 구현 파이프라인                        │
+│                                                             │
+│  사람 → Agents Orchestrator (스펙 전달)                      │
+│              ↓                                              │
+│         태스크 분해 → 팀 멤버에게 위임 → 품질 게이트         │
+│              ↓ 스펙 변경 필요 시                             │
+│         파이프라인 중단 → Architect 세션으로 안내            │
+│              ↓ 업데이트된 스펙 가져오면                      │
+│         영향받는 태스크부터 재개                             │
+└─────────────────────────────────────────────────────────────┘
+```
 
-먼저 "Agents Orchestrator" 페르소나 파일이 설치되어 있는지 확인한다:
+> **Software Architect가 스펙 리드인 이유:**
+> Backend/Frontend 등 도메인 아키텍트는 각 영역의 깊이는 있지만 시스템 전체를 통합하는 역할이 아니다.
+> Software Architect가 전체 스펙을 소유하고, 필요 시 도메인 아키텍트를 팀 멤버로 생성해 협업한다.
+> 사람은 Software Architect와만 대화하면 되고, 스펙은 하나의 통합 문서로 완성된다.
+
+**Agents Orchestrator는 이 구조에서 필수 페르소나다.** 설치 없이는 진행할 수 없다.
+
+먼저 페르소나 파일이 설치되어 있는지 확인한다:
 
 ```bash
 ls ~/.claude/agents/Agents\ Orchestrator.md 2>/dev/null
@@ -205,27 +227,25 @@ ls ~/.claude/agents/Agents\ Orchestrator.md 2>/dev/null
 
 #### 케이스 A: 파일이 있는 경우
 
-AskUserQuestion으로 물어본다:
+`~/.claude/settings.json`의 `agent` 필드를 확인하고 업데이트한다:
 
-> "team-lead 페르소나를 'Agents Orchestrator'로 설정할까요?
->
-> 설정하면 `~/.claude/settings.json`의 `\"agent\"` 값이 자동으로 변경됩니다.
-> 이 페르소나는 파이프라인 조율·태스크 배분·최종 승인에 특화되어 있습니다.
->
-> 1. 예 — Agents Orchestrator로 설정
-> 2. 아니오 — 현재 설정 유지 (페르소나 변경 없음)"
+```bash
+jq '.agent // "미설정"' ~/.claude/settings.json
+```
+
+- 이미 `"Agents Orchestrator"`이면 변경 없이 넘어간다.
+- 다른 값이면 현재 값을 보여주고 덮어쓸지 재확인 후 업데이트한다.
 
 ---
 
 #### 케이스 B: 파일이 없는 경우
 
-AskUserQuestion으로 물어본다:
+AskUserQuestion으로 설치 방법을 선택받는다:
 
-> "Agents Orchestrator 페르소나 파일이 설치되어 있지 않습니다.
+> "Agents Orchestrator 페르소나가 없습니다. 이 팀 구조의 필수 구성요소입니다.
+> 설치 방법을 선택해주세요:
 >
-> 이 페르소나를 team-lead로 사용하려면 아래 방법 중 하나로 설치할 수 있습니다:
->
-> **방법 1 — agency-agents 전체 설치** (다른 전문 역할도 함께 설치됨):
+> **방법 1 — agency-agents 전체 설치** (Backend Architect, Software Architect 등 모든 역할 포함):
 > ```bash
 > git clone --depth=1 https://github.com/msitarzewski/agency-agents /tmp/agency-agents-install
 > cp /tmp/agency-agents-install/agents/*.md ~/.claude/agents/
@@ -239,30 +259,17 @@ AskUserQuestion으로 물어본다:
 >   -o ~/.claude/agents/Agents\ Orchestrator.md
 > ```
 >
-> 어떻게 할까요?
-> 1. 전체 설치 (agency-agents 모든 에이전트)
-> 2. Agents Orchestrator만 설치
-> 3. 설치 건너뛰기 (페르소나 변경 없음)"
+> 1. 전체 설치 (권장 — Architect 세션에서 쓸 Software Architect 등도 함께 설치됨)
+> 2. Agents Orchestrator만 설치"
 
-선택에 따라 처리:
-
-- **1 또는 2 선택**: 해당 설치 명령을 실행한 뒤, 설치 성공 시 "예"와 동일하게 `agent` 필드를 업데이트한다.
-- **3 선택**: 페르소나 변경 없이 다음 단계로 진행한다.
+선택에 따라 설치 명령을 실행한다. 설치 성공 후 `agent` 필드를 업데이트한다.
 
 ---
 
-#### 페르소나 설정 적용 (케이스 A "예" 또는 케이스 B 1·2 선택 시)
+#### 페르소나 적용
 
-`~/.claude/settings.json`의 `agent` 필드를 확인하고 업데이트한다:
+`settings.json`의 `agent` 필드를 설정한다:
 
-```bash
-jq '.agent // "미설정"' ~/.claude/settings.json
-```
-
-- 이미 `"Agents Orchestrator"`이면 변경 없이 넘어간다.
-- 다른 값이면 현재 값을 보여주고 덮어쓸지 재확인한다.
-
-settings.json의 `agent` 필드를 수정한다:
 ```json
 {
   "agent": "Agents Orchestrator"
@@ -270,11 +277,13 @@ settings.json의 `agent` 필드를 수정한다:
 ```
 
 완료 후 알린다:
-> "✅ team-lead 페르소나: Agents Orchestrator 설정됨
+
+> "✅ Agents Orchestrator 설정 완료
 >
-> ℹ️ 이 페르소나는 완전 자율 파이프라인으로 설계되어 있습니다.
-> `.claude/team-rules.md`를 CLAUDE.md에 추가하면 TeamCreate 방식·사용자 허락 등
-> 이 프로젝트의 팀 규칙이 페르소나보다 우선 적용됩니다."
+> 워크플로우:
+> 1. 스펙 설계 → Software Architect와 별도 세션에서 진행
+> 2. 스펙 확정 → 이 세션(Agents Orchestrator)에 스펙 전달
+> 3. 구현 파이프라인 → Agents Orchestrator가 팀 멤버에게 위임"
 
 ---
 
@@ -341,26 +350,56 @@ cat ~/.claude/team-rules.md 2>/dev/null && echo "이미 있음" || echo "없음"
 
 > 이 파일은 `/init-team` 스킬로 생성된다. 워크플로우 도구와 무관하게 팀 구조에 항상 적용된다.
 
-## team-lead 역할
+## 세션 구조
 
-- 파이프라인 조율, 태스크 배분, 통합, 최종 승인 담당
+이 팀 워크플로우는 **두 개의 분리된 세션**으로 운영된다:
+
+| 세션 | 페르소나 | 목적 |
+| --- | --- | --- |
+| **Architect 세션** | Software Architect (스펙 리드) | 요구사항 정의, 설계, 스펙 작성 |
+| **Orchestrator 세션** | Agents Orchestrator | 구현 파이프라인, 팀 관리, 품질 게이트 |
+
+스펙 설계는 Architect 세션에서 사람이 **직접** Software Architect와 대화해 수행한다.
+Agents Orchestrator는 **확정된 스펙을 받은 시점부터만** 파이프라인을 시작한다.
+
+### Architect 세션 구조
+
+Software Architect가 스펙 전체를 소유한다.
+도메인별 심층 설계가 필요하면 Software Architect가 직접 도메인 아키텍트를 팀 멤버로 생성해 협업한다:
+
+- 백엔드 설계 필요 → Backend Architect 생성
+- 프론트엔드 설계 필요 → Frontend Developer/Architect 생성
+- DB 설계 필요 → Database Optimizer 생성
+
+사람은 Software Architect와만 대화하면 되고, 통합 스펙은 Software Architect가 작성한다.
+
+## Agents Orchestrator 역할
+
+- 구현 파이프라인 조율, 태스크 배분, 통합, 최종 승인 담당
 - 코드·설정 파일 직접 구현 금지 — 반드시 담당 팀 멤버에게 SendMessage로 위임
-- 설계·브레인스토밍 직접 수행 금지 — 반드시 architect 멤버에게 SendMessage로 위임
+- 설계·브레인스토밍 직접 수행 금지 — 스펙이 없으면 Architect 세션으로 안내
 
-## 작업 단계별 team-lead 행동 기준
+### 스펙 없이 구현 요청이 들어온 경우
 
-### 스펙 확정 전 (요구사항 수집·설계 단계)
+파이프라인 시작을 거부하고 안내한다:
 
-- team-lead는 **사람과 대화**하며 요구사항·목적·제약 조건을 수집한다
-- 설계·브레인스토밍은 **architect 멤버에게 SendMessage로 위임** — 직접 수행 절대 금지
-- architect 멤버가 없으면 사용자 허락을 받고 생성 후 위임한다
-- 이 단계에서 구현 팀 멤버 생성 금지 (스펙이 없으면 무엇을 만들지 모름)
+> "구현을 시작하려면 먼저 스펙이 필요합니다.
+> Software Architect와 별도 세션에서 설계를 진행해주세요.
+> 스펙이 확정되면 이 세션으로 돌아와 전달해주세요."
 
-### 스펙 확정 후 (구현 단계)
+### 스펙 변경이 필요한 경우
 
-- team-lead는 **자율 파이프라인 관리자**로 전환한다
-- 구현·테스트·배포는 담당 멤버에게 SendMessage로 위임 — 직접 수행 금지
-- 태스크 완료 기준을 충족해야만 다음 태스크로 진행한다
+구현 중 스펙 변경 요청이 들어오면:
+
+1. 현재 진행 중인 태스크를 즉시 중단한다
+2. 파이프라인 현재 상태를 기록한다:
+   > "스펙 변경이 필요하군요. Architect 세션에서 스펙을 업데이트해주세요.
+   >
+   > 현재 파이프라인 상태:
+   > - 완료: [완료된 태스크 목록]
+   > - 중단: [중단된 태스크]
+   > - 미시작: [남은 태스크 목록]"
+3. 업데이트된 스펙을 받으면 변경 영향 범위를 분석해 해당 태스크부터 재개한다
 
 ## 동적 팀 멤버 생성 프로세스
 
@@ -395,7 +434,7 @@ cat ~/.claude/team-rules.md 2>/dev/null && echo "이미 있음" || echo "없음"
 
 ## 완료 기준
 
-team-lead는 아래가 모두 충족될 때만 태스크 완료로 간주한다:
+Agents Orchestrator는 아래가 모두 충족될 때만 태스크 완료로 간주한다:
 
 1. 모든 테스트 통과
 2. 담당 멤버의 완료 검증 실행 완료
@@ -448,13 +487,21 @@ grep -q "@agent-workflow.md" ~/.claude/CLAUDE.md 2>/dev/null && echo "agent-work
 
 차단된 파일 확장자: [목록]
 
+워크플로우:
+  [스펙 설계]  Software Architect 페르소나로 새 세션 시작
+               → 요구사항 정의 및 설계 (도메인 아키텍트와 협업)
+               → 통합 스펙 파일 완성
+  [구현]       이 세션(Agents Orchestrator)에 스펙 전달
+               → 파이프라인 자동 실행
+  [스펙 변경]  언제든 Architect 세션으로 돌아가 수정 가능
+               → 업데이트된 스펙을 Orchestrator 세션에 전달하면 재개
+
 다음 단계:
   1. Superpowers 워크플로우 연결 (선택사항):
      /init-sp-for-team
   2. ⚠️  Claude Code를 재시작하거나 /hooks 를 실행해 훅을 리로드하세요.
      (재시작 전까지 훅이 적용되지 않습니다)
-  3. 재시작 후 자연어로 작업을 요청하세요.
-     team-lead가 필요한 팀 멤버를 동적으로 구성합니다.
+  3. 재시작 후 Software Architect 세션에서 스펙 설계를 시작하세요.
 ```
 
 ---
