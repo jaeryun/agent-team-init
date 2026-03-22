@@ -332,21 +332,25 @@ cat ~/.claude/team-rules.md 2>/dev/null && echo "이미 있음" || echo "없음"
 
 ### 11단계: 유저 레벨 CLAUDE.md에 참조 추가
 
-`~/.claude/CLAUDE.md`에 `@team-rules.md`가 포함되어 있는지 확인한다:
+`~/.claude/CLAUDE.md`에 아래 항목이 포함되어 있는지 확인한다:
 
 ```bash
-grep -q "@team-rules.md" ~/.claude/CLAUDE.md 2>/dev/null && echo "이미 있음" || echo "없음"
+grep -q "@team-rules.md" ~/.claude/CLAUDE.md 2>/dev/null && echo "team-rules: 있음" || echo "team-rules: 없음"
+grep -q "@agent-workflow.md" ~/.claude/CLAUDE.md 2>/dev/null && echo "agent-workflow: 있음" || echo "agent-workflow: 없음"
 ```
 
-**없는 경우** `~/.claude/CLAUDE.md` 끝에 추가한다:
+없는 항목만 `~/.claude/CLAUDE.md` 끝에 추가한다:
 
 ```markdown
 @team-rules.md
+
+@agent-workflow.md
 ```
 
 `~/.claude/CLAUDE.md`가 없는 경우 새로 생성한다.
 
-> `team-rules.md`는 모든 프로젝트에서 공통으로 적용되는 팀 행동 규칙이다.
+> `team-rules.md`는 플러그인 무관 팀 행동 규칙이며, `agent-workflow.md`는 에이전트 워크플로우 지침이다.
+> 두 파일 모두 `~/.claude/`(유저 레벨)에 위치하며 모든 프로젝트에서 공통으로 적용된다.
 > 훅이 `team-config.json` 존재 여부를 먼저 확인하므로, 팀 설정이 없는 프로젝트에서는 자연스럽게 비활성화된다.
 
 ---
@@ -358,7 +362,7 @@ grep -q "@team-rules.md" ~/.claude/CLAUDE.md 2>/dev/null && echo "이미 있음"
 
 생성된 파일:
   ~/.claude/team-rules.md      ← 팀 행동 규칙 (유저 레벨, 모든 프로젝트 공통)
-  ~/.claude/CLAUDE.md          ← @team-rules.md 참조 추가됨
+  ~/.claude/CLAUDE.md          ← @team-rules.md, @agent-workflow.md 참조 추가됨
   .claude/settings.local.json  ← 훅 + env var (로컬 전용, gitignore됨)
   .claude/team-config.json     ← 팀 후보 풀 (로컬 전용, gitignore됨)
 

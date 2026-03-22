@@ -194,7 +194,28 @@ team-lead는 아래가 모두 충족될 때만 태스크 완료로 간주한다:
 
 ---
 
-### 6단계: .gitignore 업데이트
+### 6단계: 유저 레벨 CLAUDE.md에 sp-workflow 로드 지침 추가
+
+`~/.claude/CLAUDE.md`에 프로젝트 레벨 `sp-workflow.md` 자동 로드 지침이 있는지 확인한다:
+
+```bash
+grep -q "sp-workflow.md" ~/.claude/CLAUDE.md 2>/dev/null && echo "이미 있음" || echo "없음"
+```
+
+**없는 경우** `~/.claude/CLAUDE.md` 끝에 추가한다:
+
+```markdown
+## 프로젝트 워크플로우 자동 로드
+
+세션 시작 시, 현재 프로젝트 디렉터리에 `.claude/sp-workflow.md` 파일이 존재하면 반드시 읽고 적용한다.
+```
+
+> `sp-workflow.md`는 프로젝트마다 경로가 다르므로 `@` import로 전역 로드할 수 없다.
+> 텍스트 지침으로 등록해 AI가 세션 중 Read 툴로 직접 읽도록 유도한다.
+
+---
+
+### 7단계: .gitignore 업데이트
 
 프로젝트 루트의 `.gitignore`에 없으면 추가한다:
 
@@ -204,13 +225,14 @@ team-lead는 아래가 모두 충족될 때만 태스크 완료로 간주한다:
 
 ---
 
-### 7단계: 완료 메시지
+### 8단계: 완료 메시지
 
 ```
 ✅ Superpowers 워크플로우 설정 완료!
 
 생성된 파일:
   .claude/sp-workflow.md  ← 단계별 스킬 매핑 (로컬 전용, gitignore됨)
+  ~/.claude/CLAUDE.md     ← sp-workflow 자동 로드 지침 추가됨
 
 다음 단계:
   1. ⚠️  Claude Code를 재시작하거나 /hooks 를 실행해 설정을 리로드하세요.
