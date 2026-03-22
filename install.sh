@@ -25,7 +25,7 @@ echo "📦 agent-team-init 스킬 설치 중..."
 mkdir -p "$SKILLS_DIR"
 
 # 기존 스킬 덮어쓰기 경고
-for skill in init-team init-sp-for-team; do
+for skill in init-team init-sp-for-team call-team; do
   if [ -d "$SKILLS_DIR/$skill" ]; then
     echo "⚠️  기존 스킬 발견: $SKILLS_DIR/$skill"
     read -r -p "   덮어쓸까요? [y/N] " confirm
