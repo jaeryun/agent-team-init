@@ -302,62 +302,6 @@ mkdir -p .claude
 }
 ```
 
-#### `.claude/team-rules.md` 생성 (플러그인 무관 팀 행동 규칙)
-
-git 커밋 가능. team-lead와 팀 멤버가 런타임에 참조하는 행동 규칙이다.
-워크플로우 도구(Superpowers 등)와 무관하게 팀 구조에 항상 적용된다.
-
-```markdown
-# 에이전트 팀 행동 규칙
-
-> 이 파일은 `/init-team` 스킬로 생성된다. 워크플로우 도구와 무관하게 팀 구조에 항상 적용된다.
-
-## team-lead 역할
-
-- 파이프라인 조율, 태스크 배분, 통합, 최종 승인 담당
-- 코드·설정 파일 직접 구현 금지 — 반드시 담당 팀 멤버에게 SendMessage로 위임
-
-## 동적 팀 멤버 생성 프로세스
-
-각 작업 시작 시 아래 순서를 따른다:
-
-1. **작업 분석** — 현재 태스크에 필요한 역할 판단
-2. **최소 멤버 결정** — `.claude/team-config.json` 후보 풀에서 꼭 필요한 역할만 선택
-3. **사용자 허락 요청** — 생성 전 반드시 확인:
-   > "이 작업을 위해 다음 팀 멤버를 생성하겠습니다:
-   > - **[역할명]** ([페르소나]): [담당 내용]
-   > 진행해도 될까요?"
-4. **생성** — `TeamCreate` → `Agent(team_name=..., name=..., subagent_type=...)`
-5. **재사용 우선** — 이미 생성된 멤버는 새로 만들지 않고 `SendMessage`로 재사용
-
-**원칙:**
-- 한 번에 최소 필요 멤버만 생성 (과도한 팀 구성 금지)
-- 불확실하면 한 명씩 순차 생성
-- 범용 태스크(리뷰·문서화·검증)는 서브에이전트로 처리 (팀 멤버 불필요)
-
-## 서브에이전트 vs 팀 멤버
-
-| 상황 | 선택 |
-| --- | --- |
-| 지속적 구현이 필요한 도메인 전문 역할 | 팀 멤버 |
-| 코드 리뷰, 완료 검증, 문서화 등 단발 목적 | 서브에이전트 |
-| 후보 풀에 없는 역할 | 서브에이전트 |
-
-## 팀 멤버 도메인 제한
-
-- 각 멤버는 할당된 도메인만 담당
-- 다른 멤버 담당 파일 직접 수정 금지 — 필요하면 `SendMessage`로 해당 멤버에게 요청
-
-## 완료 기준
-
-team-lead는 아래가 모두 충족될 때만 태스크 완료로 간주한다:
-
-1. 모든 테스트 통과
-2. 담당 멤버의 완료 검증 실행 완료
-3. 코드 리뷰 서브에이전트 리뷰 통과
-4. 통합 방식 결정 및 실행 (PR 또는 머지)
-```
-
 ---
 
 ### 9단계: .gitignore 업데이트
@@ -367,52 +311,56 @@ team-lead는 아래가 모두 충족될 때만 태스크 완료로 간주한다:
 ```
 # Agent team local settings (local only)
 .claude/settings.local.json
+.claude/team-config.json
 ```
 
 ---
 
-### 10단계: CLAUDE.md 업데이트
+### 10단계: 유저 레벨 team-rules.md 생성
 
-프로젝트 `CLAUDE.md`에 `@.claude/team-rules.md`가 포함되어 있는지 확인한다:
+`~/.claude/team-rules.md`가 이미 존재하는지 확인한다:
 
 ```bash
-grep -q "@.claude/team-rules.md" CLAUDE.md 2>/dev/null && echo "이미 있음" || echo "없음"
+cat ~/.claude/team-rules.md 2>/dev/null && echo "이미 있음" || echo "없음"
 ```
 
-**없는 경우** AskUserQuestion으로 물어본다:
+**없는 경우** `~/.claude/team-rules.md`를 생성한다 (내용은 8단계의 team-rules.md 템플릿과 동일).
 
-> "프로젝트 CLAUDE.md에 팀 행동 규칙을 추가할까요?
->
-> 추가하면 Claude가 세션 시작 시 team-rules.md를 자동으로 읽어
-> 팀 멤버 생성 전 허락 요청, 후보 풀 준수 등의 규칙을 따르게 됩니다.
-> (훅은 CLAUDE.md 없이도 기계적으로 동작하지만, AI 행동 지침은 이 참조가 필요합니다)
->
-> 1. 예 — CLAUDE.md에 자동 추가
-> 2. 아니오 — 건너뛰기 (나중에 직접 추가)"
-
-**"예"를 선택하면** `CLAUDE.md` 끝에 추가한다:
-
-```markdown
-@.claude/team-rules.md
-```
-
-**CLAUDE.md가 없는 경우** 새로 생성한다:
-
-```markdown
-@.claude/team-rules.md
-```
+**이미 있는 경우** 변경 없이 넘어간다.
 
 ---
 
-### 11단계: 완료 메시지
+### 11단계: 유저 레벨 CLAUDE.md에 참조 추가
+
+`~/.claude/CLAUDE.md`에 `@team-rules.md`가 포함되어 있는지 확인한다:
+
+```bash
+grep -q "@team-rules.md" ~/.claude/CLAUDE.md 2>/dev/null && echo "이미 있음" || echo "없음"
+```
+
+**없는 경우** `~/.claude/CLAUDE.md` 끝에 추가한다:
+
+```markdown
+@team-rules.md
+```
+
+`~/.claude/CLAUDE.md`가 없는 경우 새로 생성한다.
+
+> `team-rules.md`는 모든 프로젝트에서 공통으로 적용되는 팀 행동 규칙이다.
+> 훅이 `team-config.json` 존재 여부를 먼저 확인하므로, 팀 설정이 없는 프로젝트에서는 자연스럽게 비활성화된다.
+
+---
+
+### 12단계: 완료 메시지
 
 ```
 ✅ 팀 설정 완료!
 
 생성된 파일:
-  .claude/settings.local.json ← 훅 + env var (gitignore됨)
-  .claude/team-config.json    ← 팀 후보 풀 (git 커밋 권장)
-  .claude/team-rules.md       ← 팀 행동 규칙 (git 커밋 권장)
+  ~/.claude/team-rules.md      ← 팀 행동 규칙 (유저 레벨, 모든 프로젝트 공통)
+  ~/.claude/CLAUDE.md          ← @team-rules.md 참조 추가됨
+  .claude/settings.local.json  ← 훅 + env var (로컬 전용, gitignore됨)
+  .claude/team-config.json     ← 팀 후보 풀 (로컬 전용, gitignore됨)
 
 활성화된 팀 후보 풀:
   - [선택된 역할들]
@@ -420,13 +368,11 @@ grep -q "@.claude/team-rules.md" CLAUDE.md 2>/dev/null && echo "이미 있음" |
 차단된 파일 확장자: [목록]
 
 다음 단계:
-  1. git 커밋:
-     git add .claude/team-config.json .claude/team-rules.md CLAUDE.md
-  2. Superpowers 워크플로우 연결 (선택사항):
+  1. Superpowers 워크플로우 연결 (선택사항):
      /init-sp-for-team
-  3. ⚠️  Claude Code를 재시작하거나 /hooks 를 실행해 훅을 리로드하세요.
+  2. ⚠️  Claude Code를 재시작하거나 /hooks 를 실행해 훅을 리로드하세요.
      (재시작 전까지 훅이 적용되지 않습니다)
-  4. 재시작 후 자연어로 작업을 요청하세요.
+  3. 재시작 후 자연어로 작업을 요청하세요.
      team-lead가 필요한 팀 멤버를 동적으로 구성합니다.
 ```
 
@@ -434,11 +380,11 @@ grep -q "@.claude/team-rules.md" CLAUDE.md 2>/dev/null && echo "이미 있음" |
 
 ## 주의사항
 
-- 항상 **현재 프로젝트 디렉토리**에 파일을 생성한다 (`~/.claude/`가 아님)
+- `team-config.json`과 `settings.local.json`은 로컬 전용 — gitignore, 커밋하지 않는다
+- `team-rules.md`는 `~/.claude/`(유저 레벨)에 한 번만 생성 — 모든 프로젝트 공통 적용
+- 훅은 `team-config.json` 존재 여부를 먼저 확인하므로 팀 설정 없는 프로젝트에서는 자동 비활성화
 - 추천 목록은 **설치된 에이전트** 범위 내에서만 구성한다
 - agency-agents 설치는 선택사항이며 이 스킬의 종속성이 아니다
-- `team-config.json`은 민감 정보가 없으므로 git 커밋 권장
 - 훅과 env var는 `.claude/settings.local.json`(프로젝트 레벨)에 저장된다 — 글로벌 설정 오염 없음
-- `settings.local.json`이 없으면 팀 규칙이 강제되지 않는다
 - `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` 없이는 TeamCreate가 동작하지 않는다
 - `agent` 페르소나 설정만 `~/.claude/settings.json`(글로벌)에 저장된다
