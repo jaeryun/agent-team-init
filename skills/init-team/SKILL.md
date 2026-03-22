@@ -55,86 +55,70 @@ AGENT_COUNT=$(ls ~/.claude/agents/*.md 2>/dev/null | wc -l)
 
 ---
 
-### 3단계: 글로벌 설정 확인 및 설치
+### 3단계: 프로젝트 설정 파일 생성
 
-#### 3-1. 에이전트 팀 기능 활성화 확인
+훅과 env var는 **프로젝트 레벨** `.claude/settings.local.json`에 작성한다.
+글로벌 `~/.claude/settings.json`은 건드리지 않는다 — 다른 프로젝트에 영향을 주지 않기 위해서다.
 
-팀 생성(`TeamCreate`)이 작동하려면 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` 환경변수가 필요하다:
+#### 3-1. 기존 설정 확인
 
 ```bash
-jq '.env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS // empty' ~/.claude/settings.json
+cat .claude/settings.local.json 2>/dev/null
 ```
 
-값이 없거나 `"1"`이 아니면 AskUserQuestion으로 물어본다:
+- **파일이 이미 있는 경우**: 현재 내용을 보여주고 머지할지 물어본다.
+- **없는 경우**: 조용히 다음으로 진행한다.
 
-> "`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`이 설정되어 있지 않습니다.
-> 이 값이 없으면 팀 생성(TeamCreate)이 작동하지 않습니다.
+#### 3-2. `.claude/settings.local.json` 생성
+
+AskUserQuestion으로 물어본다:
+
+> "프로젝트 레벨 설정 파일(`.claude/settings.local.json`)에 아래를 추가할까요?
 >
-> 지금 추가할까요?
-> 1. 예 — 자동으로 settings.json에 추가
-> 2. 아니오 — 건너뛰기"
+> - `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` — TeamCreate 기능 활성화
+> - PreToolUse 훅 2개 — 팀 규칙 강제 (팀 멤버 잘못된 생성 차단, team-lead 직접 구현 차단)
+>
+> 이 파일은 이 프로젝트에서만 적용됩니다. (gitignore 권장)
+>
+> 1. 예 — 자동 생성 (권장)
+> 2. 아니오 — 건너뛰기 (나중에 직접 설정)"
 
-"예"를 선택하면 `~/.claude/settings.json`의 `env` 필드에 추가한다:
+**"예"를 선택하면** `.claude/settings.local.json`을 아래 내용으로 생성(또는 머지)한다:
+
 ```json
 {
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Agent",
+        "hooks": [{
+          "type": "command",
+          "command": "INPUT=$(cat); TEAM_CONFIG=\".claude/team-config.json\"; [ ! -f \"$TEAM_CONFIG\" ] && exit 0; SUBAGENT_TYPE=$(echo \"$INPUT\" | jq -r '.tool_input.subagent_type // \"\"'); [ -z \"$SUBAGENT_TYPE\" ] && exit 0; TEAM_NAME=$(echo \"$INPUT\" | jq -r '.tool_input.team_name // \"\"'); IS_TEAM_MEMBER=$(jq --arg r \"$SUBAGENT_TYPE\" '[.teamMembers[] | select(. == $r)] | length > 0' \"$TEAM_CONFIG\"); if [ \"$IS_TEAM_MEMBER\" = \"true\" ] && [ -z \"$TEAM_NAME\" ]; then echo \"{\\\"continue\\\": false, \\\"stopReason\\\": \\\"⛔ 팀 멤버 규칙 위반: '$SUBAGENT_TYPE' 는 TeamCreate 후 team_name + name 포함해서 생성하세요.\\\"}\"; fi",
+          "statusMessage": "팀 멤버 생성 규칙 확인 중..."
+        }]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [{
+          "type": "command",
+          "command": "INPUT=$(cat); TEAM_CONFIG=\".claude/team-config.json\"; [ ! -f \"$TEAM_CONFIG\" ] && exit 0; FILE_PATH=$(echo \"$INPUT\" | jq -r '.tool_input.file_path // \"\"'); [ -z \"$FILE_PATH\" ] && exit 0; EXT=\".${FILE_PATH##*.}\"; BLOCKED=$(jq --arg e \"$EXT\" '[.blockedExtensions[] | select(. == $e)] | length > 0' \"$TEAM_CONFIG\"); if [ \"$BLOCKED\" = \"true\" ]; then echo \"{\\\"continue\\\": false, \\\"stopReason\\\": \\\"⛔ team-lead 직접 구현 금지: $FILE_PATH → 담당 팀 멤버에게 SendMessage로 위임하세요.\\\"}\"; fi",
+          "statusMessage": "team-lead 직접 구현 여부 확인 중..."
+        }]
+      }
+    ]
   }
 }
 ```
 
-#### 3-2. 글로벌 훅 확인 및 설치
-
-팀 워크플로우 규칙을 강제하는 글로벌 훅이 `~/.claude/settings.json`에 있는지 확인한다:
-
+생성 후 JSON 문법을 검증한다:
 ```bash
-jq '.hooks.PreToolUse // empty' ~/.claude/settings.json
-```
-
-**훅이 없는 경우** AskUserQuestion으로 물어본다:
-
-> "글로벌 PreToolUse 훅이 설정되어 있지 않습니다.
-> 훅이 없으면 team-config.json을 만들어도 팀 규칙이 강제되지 않습니다.
->
-> 지금 설치할까요? (권장)
-> 1. 예 — 글로벌 훅 자동 설치
-> 2. 아니오 — 건너뛰기 (나중에 직접 설정)"
-
-**"예"를 선택하면** `~/.claude/settings.json`에 아래 두 훅을 머지한다.
-기존 설정은 보존하고 `hooks.PreToolUse` 배열에만 추가한다:
-
-**훅 1 — Agent 툴: 팀 멤버를 team_name 없이 서브에이전트로 호출 차단**
-```json
-{
-  "matcher": "Agent",
-  "hooks": [{
-    "type": "command",
-    "command": "INPUT=$(cat); TEAM_CONFIG=\".claude/team-config.json\"; [ ! -f \"$TEAM_CONFIG\" ] && exit 0; SUBAGENT_TYPE=$(echo \"$INPUT\" | jq -r '.tool_input.subagent_type // \"\"'); [ -z \"$SUBAGENT_TYPE\" ] && exit 0; TEAM_NAME=$(echo \"$INPUT\" | jq -r '.tool_input.team_name // \"\"'); IS_TEAM_MEMBER=$(jq --arg r \"$SUBAGENT_TYPE\" '[.teamMembers[] | select(. == $r)] | length > 0' \"$TEAM_CONFIG\"); if [ \"$IS_TEAM_MEMBER\" = \"true\" ] && [ -z \"$TEAM_NAME\" ]; then echo \"{\\\"continue\\\": false, \\\"stopReason\\\": \\\"⛔ 팀 멤버 규칙 위반: '$SUBAGENT_TYPE' 는 TeamCreate 후 team_name + name 포함해서 생성하세요.\\\"}\"; fi",
-    "statusMessage": "팀 멤버 생성 규칙 확인 중..."
-  }]
-}
-```
-
-**훅 2 — Write/Edit 툴: team-lead의 코드 파일 직접 구현 차단**
-```json
-{
-  "matcher": "Write|Edit",
-  "hooks": [{
-    "type": "command",
-    "command": "INPUT=$(cat); TEAM_CONFIG=\".claude/team-config.json\"; [ ! -f \"$TEAM_CONFIG\" ] && exit 0; FILE_PATH=$(echo \"$INPUT\" | jq -r '.tool_input.file_path // \"\"'); [ -z \"$FILE_PATH\" ] && exit 0; EXT=\".${FILE_PATH##*.}\"; BLOCKED=$(jq --arg e \"$EXT\" '[.blockedExtensions[] | select(. == $e)] | length > 0' \"$TEAM_CONFIG\"); if [ \"$BLOCKED\" = \"true\" ]; then echo \"{\\\"continue\\\": false, \\\"stopReason\\\": \\\"⛔ team-lead 직접 구현 금지: $FILE_PATH → 담당 팀 멤버에게 SendMessage로 위임하세요.\\\"}\"; fi",
-    "statusMessage": "team-lead 직접 구현 여부 확인 중..."
-  }]
-}
-```
-
-설치 후 JSON 문법을 검증한다:
-```bash
-jq -e '.hooks.PreToolUse' ~/.claude/settings.json && echo "✅ 훅 설치 완료"
+jq -e '.hooks.PreToolUse' .claude/settings.local.json && echo "✅ 프로젝트 설정 완료"
 ```
 
 **"아니오"를 선택하면** 계속 진행하되 마지막 완료 메시지에 경고를 포함한다.
-
-**훅이 이미 있는 경우** 조용히 계속 진행한다.
 
 ---
 
@@ -275,7 +259,12 @@ settings.json의 `agent` 필드를 수정한다:
 }
 ```
 
-완료 후 알린다: `"✅ team-lead 페르소나: Agents Orchestrator 설정됨"`
+완료 후 알린다:
+> "✅ team-lead 페르소나: Agents Orchestrator 설정됨
+>
+> ℹ️ 이 페르소나는 완전 자율 파이프라인으로 설계되어 있습니다.
+> `.claude/team-rules.md`를 CLAUDE.md에 추가하면 TeamCreate 방식·사용자 허락 등
+> 이 프로젝트의 팀 규칙이 페르소나보다 우선 적용됩니다."
 
 ---
 
@@ -391,6 +380,7 @@ team-lead는 아래가 모두 충족될 때만 태스크 완료로 간주한다:
 ```
 # Agent team config (local only)
 .claude/team-config.json
+.claude/settings.local.json
 ```
 
 ---
@@ -401,6 +391,7 @@ team-lead는 아래가 모두 충족될 때만 태스크 완료로 간주한다:
 ✅ 팀 설정 완료!
 
 생성된 파일:
+  .claude/settings.local.json      ← 훅 + env var (gitignore됨)
   .claude/team-config.json         ← 로컬 전용 (gitignore됨)
   .claude/team-config.example.json ← 팀 공유용 템플릿 (git 커밋 권장)
   .claude/team-rules.md            ← 팀 행동 규칙 (git 커밋 권장)
@@ -430,5 +421,7 @@ team-lead는 아래가 모두 충족될 때만 태스크 완료로 간주한다:
 - 추천 목록은 **설치된 에이전트** 범위 내에서만 구성한다
 - agency-agents 설치는 선택사항이며 이 스킬의 종속성이 아니다
 - `team-config.json`은 gitignore, `team-config.example.json`은 git 커밋 권장
-- 글로벌 훅이 없으면 `team-config.json`만으로는 규칙이 강제되지 않는다
+- 훅과 env var는 `.claude/settings.local.json`(프로젝트 레벨)에 저장된다 — 글로벌 설정 오염 없음
+- `settings.local.json`이 없으면 팀 규칙이 강제되지 않는다
 - `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` 없이는 TeamCreate가 동작하지 않는다
+- `agent` 페르소나 설정만 `~/.claude/settings.json`(글로벌)에 저장된다
