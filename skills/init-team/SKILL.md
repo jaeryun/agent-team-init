@@ -295,23 +295,10 @@ mkdir -p .claude
 #### `.claude/team-config.json` 생성 (최종 확정된 후보 풀로)
 ```json
 {
-  "_comment": "이 파일은 gitignore됩니다. 팀 공유용은 team-config.example.json을 사용하세요.",
   "_teamMembers_note": "후보 풀입니다. 실제 생성은 team-lead가 작업별로 사용자 허락을 받고 동적으로 수행합니다.",
   "teamMembers": ["최종 선택된 역할 후보 목록"],
   "blockedExtensions": [".py", ".ts", ".tsx", "..."],
   "allowedExtensions": [".md", ".json", ".yaml", "..."]
-}
-```
-
-#### `.claude/team-config.example.json` 생성 (git 커밋용 템플릿)
-
-현재 설치된 전체 에이전트 목록을 포함한 템플릿으로 생성한다:
-```json
-{
-  "_comment": "복사해서 team-config.json으로 사용하세요. team-config.json은 gitignore됩니다.",
-  "teamMembers": ["설치된 전체 에이전트 목록"],
-  "blockedExtensions": [".py", ".ts", ".tsx", ".js", ".jsx", ".go", ".rs", ".java", ".cpp", ".c", ".cs"],
-  "allowedExtensions": [".md", ".json", ".yaml", ".yml", ".txt", ".gitignore", ".env.example"]
 }
 ```
 
@@ -378,8 +365,7 @@ team-lead는 아래가 모두 충족될 때만 태스크 완료로 간주한다:
 프로젝트 루트의 `.gitignore`에 없으면 추가한다:
 
 ```
-# Agent team config (local only)
-.claude/team-config.json
+# Agent team local settings (local only)
 .claude/settings.local.json
 ```
 
@@ -424,10 +410,9 @@ grep -q "@.claude/team-rules.md" CLAUDE.md 2>/dev/null && echo "이미 있음" |
 ✅ 팀 설정 완료!
 
 생성된 파일:
-  .claude/settings.local.json      ← 훅 + env var (gitignore됨)
-  .claude/team-config.json         ← 로컬 전용 (gitignore됨)
-  .claude/team-config.example.json ← 팀 공유용 템플릿 (git 커밋 권장)
-  .claude/team-rules.md            ← 팀 행동 규칙 (git 커밋 권장)
+  .claude/settings.local.json ← 훅 + env var (gitignore됨)
+  .claude/team-config.json    ← 팀 후보 풀 (git 커밋 권장)
+  .claude/team-rules.md       ← 팀 행동 규칙 (git 커밋 권장)
 
 활성화된 팀 후보 풀:
   - [선택된 역할들]
@@ -436,7 +421,7 @@ grep -q "@.claude/team-rules.md" CLAUDE.md 2>/dev/null && echo "이미 있음" |
 
 다음 단계:
   1. git 커밋:
-     git add .claude/team-config.example.json .claude/team-rules.md CLAUDE.md
+     git add .claude/team-config.json .claude/team-rules.md CLAUDE.md
   2. Superpowers 워크플로우 연결 (선택사항):
      /init-sp-for-team
   3. ⚠️  Claude Code를 재시작하거나 /hooks 를 실행해 훅을 리로드하세요.
@@ -452,7 +437,7 @@ grep -q "@.claude/team-rules.md" CLAUDE.md 2>/dev/null && echo "이미 있음" |
 - 항상 **현재 프로젝트 디렉토리**에 파일을 생성한다 (`~/.claude/`가 아님)
 - 추천 목록은 **설치된 에이전트** 범위 내에서만 구성한다
 - agency-agents 설치는 선택사항이며 이 스킬의 종속성이 아니다
-- `team-config.json`은 gitignore, `team-config.example.json`은 git 커밋 권장
+- `team-config.json`은 민감 정보가 없으므로 git 커밋 권장
 - 훅과 env var는 `.claude/settings.local.json`(프로젝트 레벨)에 저장된다 — 글로벌 설정 오염 없음
 - `settings.local.json`이 없으면 팀 규칙이 강제되지 않는다
 - `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` 없이는 TeamCreate가 동작하지 않는다
