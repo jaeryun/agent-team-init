@@ -24,8 +24,9 @@ echo "   소스:    $REPO_DIR"
 echo "   설치 경로: $SKILLS_DIR"
 echo ""
 
-# 1. git pull (로컬 변경 없을 때만)
-if git -C "$REPO_DIR" diff --quiet 2>/dev/null; then
+# 1. git pull (로컬 변경 없을 때만 — 워킹트리 + 스테이징 모두 확인)
+if git -C "$REPO_DIR" rev-parse --is-inside-work-tree &>/dev/null \
+   && git -C "$REPO_DIR" diff HEAD --quiet 2>/dev/null; then
   echo "📡 최신 버전 확인 중..."
   git -C "$REPO_DIR" pull --ff-only 2>&1 | sed 's/^/   /'
   echo ""
