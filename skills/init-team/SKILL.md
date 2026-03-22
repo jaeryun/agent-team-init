@@ -181,6 +181,40 @@ AskUserQuestion으로 추천 결과를 보여주고 확인받는다:
 
 ---
 
+### 5-1단계: 역할별 모델 설정
+
+선택된 역할(Agents Orchestrator 포함)에 사용할 AI 모델을 설정한다.
+비용과 성능을 고려해 역할별로 다른 모델을 지정할 수 있다.
+
+AskUserQuestion으로 선택받는다:
+
+```
+각 역할에 사용할 모델을 설정하세요.
+비용과 성능을 고려해 역할별로 다르게 지정할 수 있습니다.
+
+모델 옵션:
+  opus    — 최고 성능, 복잡한 설계·판단 작업  (비용 높음)
+  sonnet  — 균형잡힌 성능, 일반 구현 작업     (기본값, 권장)
+  haiku   — 빠르고 저렴, 단순 반복 작업       (비용 낮음)
+
+추천 기본값:
+  orchestrator                   → sonnet  (파이프라인 관리, 판단 필요)
+  engineering-backend-architect  → sonnet  (복잡한 구현)
+  engineering-frontend-developer → sonnet  (복잡한 구현)
+  engineering-database-optimizer → sonnet  (스키마 설계)
+  engineering-devops-automator   → haiku   (스크립트 작업)
+
+어떻게 할까요?
+  1. 추천 기본값 사용
+  2. 전체 동일 모델 사용 (예: "모두 sonnet")
+  3. 역할별 직접 지정
+```
+
+선택 결과를 `modelConfig` 맵으로 저장한다.
+(지정하지 않은 역할은 기본값 `sonnet`으로 처리한다)
+
+---
+
 ### 6단계: 페르소나 설치 및 디폴트 에이전트 설정 (필수)
 
 이 팀 구조는 **두 개의 세션**으로 운영된다:
@@ -323,10 +357,20 @@ mkdir -p .claude
 {
   "_teamMembers_note": "후보 풀입니다. 실제 생성은 team-lead가 작업별로 사용자 허락을 받고 동적으로 수행합니다.",
   "teamMembers": ["최종 선택된 역할 후보 목록"],
+  "modelConfig": {
+    "orchestrator": "sonnet",
+    "engineering-backend-architect": "sonnet",
+    "engineering-frontend-developer": "sonnet",
+    "engineering-database-optimizer": "sonnet",
+    "engineering-devops-automator": "haiku"
+  },
   "blockedExtensions": [".py", ".ts", ".tsx", "..."],
   "allowedExtensions": [".md", ".json", ".yaml", "..."]
 }
 ```
+
+> `modelConfig`의 키는 역할 ID(`teamMembers`에 포함된 것) 및 `"orchestrator"`를 사용한다.
+> 키가 없는 역할은 스폰 시 `sonnet`을 기본값으로 사용한다.
 
 ---
 
