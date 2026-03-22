@@ -181,7 +181,7 @@ AskUserQuestion으로 추천 결과를 보여주고 확인받는다:
 
 ---
 
-### 6단계: Agents Orchestrator 페르소나 설정 (필수)
+### 6단계: 페르소나 설치 및 디폴트 에이전트 설정 (필수)
 
 이 팀 구조는 **두 개의 세션**으로 운영된다:
 
@@ -215,75 +215,82 @@ AskUserQuestion으로 추천 결과를 보여주고 확인받는다:
 > Software Architect가 전체 스펙을 소유하고, 필요 시 도메인 아키텍트를 팀 멤버로 생성해 협업한다.
 > 사람은 Software Architect와만 대화하면 되고, 스펙은 하나의 통합 문서로 완성된다.
 
-**Agents Orchestrator는 이 구조에서 필수 페르소나다.** 설치 없이는 진행할 수 없다.
-
-먼저 페르소나 파일이 설치되어 있는지 확인한다:
+두 페르소나 모두 필수다. 설치 없이는 진행할 수 없다.
 
 ```bash
-ls ~/.claude/agents/Agents\ Orchestrator.md 2>/dev/null
+ls ~/.claude/agents/Software\ Architect.md 2>/dev/null && echo "SA: 있음" || echo "SA: 없음"
+ls ~/.claude/agents/Agents\ Orchestrator.md 2>/dev/null && echo "AO: 있음" || echo "AO: 없음"
 ```
 
 ---
 
-#### 케이스 A: 파일이 있는 경우
+#### 케이스 A: 둘 다 있는 경우
 
-`~/.claude/settings.json`의 `agent` 필드를 확인하고 업데이트한다:
-
-```bash
-jq '.agent // "미설정"' ~/.claude/settings.json
-```
-
-- 이미 `"Agents Orchestrator"`이면 변경 없이 넘어간다.
-- 다른 값이면 현재 값을 보여주고 덮어쓸지 재확인 후 업데이트한다.
+조용히 다음으로 진행한다.
 
 ---
 
-#### 케이스 B: 파일이 없는 경우
+#### 케이스 B: 하나라도 없는 경우
 
 AskUserQuestion으로 설치 방법을 선택받는다:
 
-> "Agents Orchestrator 페르소나가 없습니다. 이 팀 구조의 필수 구성요소입니다.
-> 설치 방법을 선택해주세요:
+> "필수 페르소나가 설치되어 있지 않습니다.
 >
-> **방법 1 — agency-agents 전체 설치** (Backend Architect, Software Architect 등 모든 역할 포함):
+> **방법 1 — agency-agents 전체 설치** (권장):
 > ```bash
 > git clone --depth=1 https://github.com/msitarzewski/agency-agents /tmp/agency-agents-install
 > cp /tmp/agency-agents-install/agents/*.md ~/.claude/agents/
 > rm -rf /tmp/agency-agents-install
 > ```
 >
-> **방법 2 — Agents Orchestrator만 설치**:
+> **방법 2 — 필요한 페르소나만 개별 설치**:
 > ```bash
 > mkdir -p ~/.claude/agents
-> curl -fsSL https://raw.githubusercontent.com/msitarzewski/agency-agents/main/agents/Agents%20Orchestrator.md \
+> # Software Architect
+> curl -fsSL "https://raw.githubusercontent.com/msitarzewski/agency-agents/main/agents/Software%20Architect.md" \
+>   -o ~/.claude/agents/Software\ Architect.md
+> # Agents Orchestrator
+> curl -fsSL "https://raw.githubusercontent.com/msitarzewski/agency-agents/main/agents/Agents%20Orchestrator.md" \
 >   -o ~/.claude/agents/Agents\ Orchestrator.md
 > ```
 >
-> 1. 전체 설치 (권장 — Architect 세션에서 쓸 Software Architect 등도 함께 설치됨)
-> 2. Agents Orchestrator만 설치"
+> 1. 전체 설치 (권장)
+> 2. 개별 설치"
 
-선택에 따라 설치 명령을 실행한다. 설치 성공 후 `agent` 필드를 업데이트한다.
+선택에 따라 설치 명령을 실행한다.
 
 ---
 
-#### 페르소나 적용
+#### 디폴트 에이전트 설정
 
-`settings.json`의 `agent` 필드를 설정한다:
+**메인 터미널의 기본 페르소나는 Software Architect**다.
+스펙 설계가 워크플로우의 시작점이며 가장 많은 시간을 차지하기 때문이다.
+
+`settings.json`의 `agent` 필드를 확인하고 설정한다:
+
+```bash
+jq '.agent // "미설정"' ~/.claude/settings.json
+```
+
+- 이미 `"Software Architect"`이면 변경 없이 넘어간다.
+- 다른 값이면 현재 값을 보여주고 재확인 후 업데이트한다:
 
 ```json
 {
-  "agent": "Agents Orchestrator"
+  "agent": "Software Architect"
 }
 ```
 
 완료 후 알린다:
 
-> "✅ Agents Orchestrator 설정 완료
+> "✅ 페르소나 설정 완료
+>
+> 메인 터미널: **Software Architect** (스펙 설계 허브)
 >
 > 워크플로우:
-> 1. 스펙 설계 → Software Architect와 별도 세션에서 진행
-> 2. 스펙 확정 → 이 세션(Agents Orchestrator)에 스펙 전달
-> 3. 구현 파이프라인 → Agents Orchestrator가 팀 멤버에게 위임"
+> 1. 이 터미널에서 요구사항 분석 및 스펙 설계
+> 2. 스펙 확정 후 /call-team → Agents Orchestrator + 도메인 멤버 스폰
+> 3. Agents Orchestrator에게 스펙 전달 → 구현 파이프라인 실행"
 
 ---
 
