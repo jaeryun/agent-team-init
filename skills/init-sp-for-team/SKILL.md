@@ -142,7 +142,7 @@ AskUserQuestion으로 생성할 워크플로우를 보여주고 확인받는다:
 # Superpowers 팀 워크플로우
 
 > 이 파일은 `/init-sp-for-team` 스킬로 생성됐다.
-> 플러그인 무관 팀 행동 규칙은 `.claude/team-rules.md`를 참조한다.
+> 플러그인 무관 팀 행동 규칙은 `~/.claude/team-rules.md`를 참조한다.
 
 ## 팀 후보 풀
 
@@ -194,23 +194,28 @@ team-lead는 아래가 모두 충족될 때만 태스크 완료로 간주한다:
 
 ---
 
-### 6단계: 완료 메시지
+### 6단계: .gitignore 업데이트
+
+프로젝트 루트의 `.gitignore`에 없으면 추가한다:
+
+```
+.claude/sp-workflow.md
+```
+
+---
+
+### 7단계: 완료 메시지
 
 ```
 ✅ Superpowers 워크플로우 설정 완료!
 
 생성된 파일:
-  .claude/sp-workflow.md  ← 단계별 스킬 매핑 (git 커밋 권장)
+  .claude/sp-workflow.md  ← 단계별 스킬 매핑 (로컬 전용, gitignore됨)
 
 다음 단계:
-  1. AI 컨텍스트에 포함하려면 프로젝트 CLAUDE.md에 추가:
-     @.claude/team-rules.md
-     @.claude/sp-workflow.md
-  2. git 커밋:
-     git add .claude/sp-workflow.md
-  3. 작업 시작:
-     team-lead가 태스크를 받으면 team-rules.md + sp-workflow.md를 참조해
-     필요한 팀 멤버를 동적으로 생성하고 해당 단계의 스킬을 호출한다.
+  1. ⚠️  Claude Code를 재시작하거나 /hooks 를 실행해 설정을 리로드하세요.
+  2. 재시작 후 자연어로 작업을 요청하세요.
+     team-lead가 sp-workflow.md의 단계별 스킬을 참조해 진행합니다.
 ```
 
 ---
