@@ -42,7 +42,48 @@ AGENT_COUNT=$(ls ~/.claude/agents/*.md 2>/dev/null | wc -l)
 
 ---
 
-### 2단계: 글로벌 훅 확인 및 설치
+### 2단계: 기존 설정 확인
+
+`.claude/team-config.json`이 이미 존재하면 현재 내용을 보여주고 물어본다:
+
+> "team-config.json이 이미 있습니다. 어떻게 할까요?
+> 1. 업데이트 (새 추천 기반으로 수정)
+> 2. 덮어쓰기 (완전히 새로 설정)
+> 3. 취소"
+
+**취소를 선택하면** 즉시 중단한다. 이 이후 단계에서 변경되는 설정(훅·페르소나 등)이 없도록 여기서 조기 종료한다.
+
+---
+
+### 3단계: 글로벌 설정 확인 및 설치
+
+#### 3-1. 에이전트 팀 기능 활성화 확인
+
+팀 생성(`TeamCreate`)이 작동하려면 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` 환경변수가 필요하다:
+
+```bash
+jq '.env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS // empty' ~/.claude/settings.json
+```
+
+값이 없거나 `"1"`이 아니면 AskUserQuestion으로 물어본다:
+
+> "`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`이 설정되어 있지 않습니다.
+> 이 값이 없으면 팀 생성(TeamCreate)이 작동하지 않습니다.
+>
+> 지금 추가할까요?
+> 1. 예 — 자동으로 settings.json에 추가
+> 2. 아니오 — 건너뛰기"
+
+"예"를 선택하면 `~/.claude/settings.json`의 `env` 필드에 추가한다:
+```json
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
+}
+```
+
+#### 3-2. 글로벌 훅 확인 및 설치
 
 팀 워크플로우 규칙을 강제하는 글로벌 훅이 `~/.claude/settings.json`에 있는지 확인한다:
 
@@ -50,9 +91,7 @@ AGENT_COUNT=$(ls ~/.claude/agents/*.md 2>/dev/null | wc -l)
 jq '.hooks.PreToolUse // empty' ~/.claude/settings.json
 ```
 
-#### 훅이 없는 경우
-
-AskUserQuestion으로 물어본다:
+**훅이 없는 경우** AskUserQuestion으로 물어본다:
 
 > "글로벌 PreToolUse 훅이 설정되어 있지 않습니다.
 > 훅이 없으면 team-config.json을 만들어도 팀 규칙이 강제되지 않습니다.
@@ -93,18 +132,13 @@ AskUserQuestion으로 물어본다:
 jq -e '.hooks.PreToolUse' ~/.claude/settings.json && echo "✅ 훅 설치 완료"
 ```
 
-완료 후 알린다:
-> "✅ 글로벌 훅 설치 완료. `/hooks`를 한 번 열어 리로드하거나 Claude Code를 재시작하세요."
-
 **"아니오"를 선택하면** 계속 진행하되 마지막 완료 메시지에 경고를 포함한다.
 
-#### 훅이 이미 있는 경우
-
-조용히 계속 진행한다.
+**훅이 이미 있는 경우** 조용히 계속 진행한다.
 
 ---
 
-### 3단계: 프로젝트 컨텍스트 분석
+### 4단계: 프로젝트 컨텍스트 분석
 
 현재 프로젝트의 성격을 파악하기 위해 아래를 확인한다:
 
@@ -128,9 +162,9 @@ ls .github/workflows/ 2>/dev/null
 
 ---
 
-### 4단계: 적합한 에이전트 추천
+### 5단계: 적합한 에이전트 추천
 
-1단계에서 수집한 **설치된 에이전트 목록**과 3단계의 **프로젝트 분석 결과**를 조합해
+1단계에서 수집한 **설치된 에이전트 목록**과 4단계의 **프로젝트 분석 결과**를 조합해
 이 프로젝트에 적합한 에이전트를 추천한다.
 
 추천 기준:
@@ -163,7 +197,7 @@ AskUserQuestion으로 추천 결과를 보여주고 확인받는다:
 
 ---
 
-### 5단계: team-lead 페르소나 설정
+### 6단계: team-lead 페르소나 설정
 
 team-lead 역할을 맡을 페르소나를 설정한다.
 
@@ -242,17 +276,6 @@ settings.json의 `agent` 필드를 수정한다:
 ```
 
 완료 후 알린다: `"✅ team-lead 페르소나: Agents Orchestrator 설정됨"`
-
----
-
-### 6단계: 기존 설정 확인
-
-`.claude/team-config.json`이 이미 존재하면 현재 내용을 보여주고 물어본다:
-
-> "team-config.json이 이미 있습니다. 어떻게 할까요?
-> 1. 업데이트 (새 추천 기반으로 수정)
-> 2. 덮어쓰기 (완전히 새로 설정)
-> 3. 취소"
 
 ---
 
@@ -396,6 +419,7 @@ team-lead는 아래가 모두 충족될 때만 태스크 완료로 간주한다:
      git add .claude/team-config.example.json .claude/team-rules.md
   4. 팀 작업 시작:
      TeamCreate → Agent(team_name=..., name=...) → SendMessage
+  5. Claude Code를 재시작하거나 /hooks 를 열어 설정을 리로드하세요.
 ```
 
 ---
@@ -407,3 +431,4 @@ team-lead는 아래가 모두 충족될 때만 태스크 완료로 간주한다:
 - agency-agents 설치는 선택사항이며 이 스킬의 종속성이 아니다
 - `team-config.json`은 gitignore, `team-config.example.json`은 git 커밋 권장
 - 글로벌 훅이 없으면 `team-config.json`만으로는 규칙이 강제되지 않는다
+- `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` 없이는 TeamCreate가 동작하지 않는다

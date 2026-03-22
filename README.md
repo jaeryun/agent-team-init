@@ -32,6 +32,7 @@ Claude Code 프로젝트에 에이전트 팀 워크플로우를 초기화하는 
 ## 사전 요구사항
 
 - [Claude Code](https://claude.ai/code)
+- `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` 환경변수 (`/init-team` 실행 시 자동 설정 가능)
 - [Superpowers 플러그인](https://github.com/obra/superpowers) (`/init-sp-for-team` 사용 시)
 
 에이전트 페르소나 파일이 적은 경우 [agency-agents](https://github.com/msitarzewski/agency-agents) 설치를 권장합니다 (선택사항).
@@ -39,14 +40,12 @@ Claude Code 프로젝트에 에이전트 팀 워크플로우를 초기화하는 
 ## 설치
 
 ```bash
-# 자동 설치
-curl -fsSL https://raw.githubusercontent.com/jaeryun/agent-team-init/main/install.sh | bash
-
-# 수동 설치
+# 설치 (git clone 방식)
 git clone https://github.com/jaeryun/agent-team-init
-cp -r agent-team-init/skills/init-team ~/.claude/skills/
-cp -r agent-team-init/skills/init-sp-for-team ~/.claude/skills/
+bash agent-team-init/install.sh
 ```
+
+> **주의**: `curl | bash` 방식은 경로 감지 문제로 지원하지 않습니다.
 
 ## 사용법
 
@@ -63,6 +62,8 @@ cp -r agent-team-init/skills/init-sp-for-team ~/.claude/skills/
 @.claude/team-rules.md
 @.claude/sp-workflow.md
 ```
+
+> **설치 후 Claude Code를 재시작하거나 `/hooks`를 실행해 설정을 리로드하세요.**
 
 ## 설계 철학
 
