@@ -385,7 +385,40 @@ team-lead는 아래가 모두 충족될 때만 태스크 완료로 간주한다:
 
 ---
 
-### 10단계: 완료 메시지
+### 10단계: CLAUDE.md 업데이트
+
+프로젝트 `CLAUDE.md`에 `@.claude/team-rules.md`가 포함되어 있는지 확인한다:
+
+```bash
+grep -q "@.claude/team-rules.md" CLAUDE.md 2>/dev/null && echo "이미 있음" || echo "없음"
+```
+
+**없는 경우** AskUserQuestion으로 물어본다:
+
+> "프로젝트 CLAUDE.md에 팀 행동 규칙을 추가할까요?
+>
+> 추가하면 Claude가 세션 시작 시 team-rules.md를 자동으로 읽어
+> 팀 멤버 생성 전 허락 요청, 후보 풀 준수 등의 규칙을 따르게 됩니다.
+> (훅은 CLAUDE.md 없이도 기계적으로 동작하지만, AI 행동 지침은 이 참조가 필요합니다)
+>
+> 1. 예 — CLAUDE.md에 자동 추가
+> 2. 아니오 — 건너뛰기 (나중에 직접 추가)"
+
+**"예"를 선택하면** `CLAUDE.md` 끝에 추가한다:
+
+```markdown
+@.claude/team-rules.md
+```
+
+**CLAUDE.md가 없는 경우** 새로 생성한다:
+
+```markdown
+@.claude/team-rules.md
+```
+
+---
+
+### 11단계: 완료 메시지
 
 ```
 ✅ 팀 설정 완료!
@@ -402,15 +435,14 @@ team-lead는 아래가 모두 충족될 때만 태스크 완료로 간주한다:
 차단된 파일 확장자: [목록]
 
 다음 단계:
-  1. 팀 규칙을 AI 컨텍스트에 포함하려면 프로젝트 CLAUDE.md에 추가:
-     @.claude/team-rules.md
+  1. git 커밋:
+     git add .claude/team-config.example.json .claude/team-rules.md CLAUDE.md
   2. Superpowers 워크플로우 연결 (선택사항):
      /init-sp-for-team
-  3. git 커밋:
-     git add .claude/team-config.example.json .claude/team-rules.md
-  4. 팀 작업 시작:
-     TeamCreate → Agent(team_name=..., name=...) → SendMessage
-  5. Claude Code를 재시작하거나 /hooks 를 열어 설정을 리로드하세요.
+  3. ⚠️  Claude Code를 재시작하거나 /hooks 를 실행해 훅을 리로드하세요.
+     (재시작 전까지 훅이 적용되지 않습니다)
+  4. 재시작 후 자연어로 작업을 요청하세요.
+     team-lead가 필요한 팀 멤버를 동적으로 구성합니다.
 ```
 
 ---
